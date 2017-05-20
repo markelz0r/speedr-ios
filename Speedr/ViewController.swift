@@ -8,6 +8,8 @@
 
 import UIKit
 
+
+
 class ViewController: UIViewController, URLSessionDownloadDelegate {
     var downloadTask: URLSessionDownloadTask!
     var uploadTask: URLSessionTask!
@@ -15,6 +17,7 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
     var startTime: TimeInterval! = 0
     var speedEntries = [Double]()
     var fileLocation: URL!
+    var finishedTransfers: Int! = 0
     
 
     @IBOutlet weak var downSpeedLabel: UILabel!
@@ -27,6 +30,10 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
+        upSpeedLabel.text = ""
+        downSpeedLabel.text = ""
+        downloadTask = nil
+        uploadTask = nil
         
        
         let backgroundSessionConfiguration = URLSessionConfiguration.background(withIdentifier: "backgroundSession")
@@ -42,6 +49,11 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
     }
 
     @IBAction func beginPressed(_ sender: Any) {
+        progressDownloadIndicator.setProgress(0.0, animated: false)
+        progressUploadIndicator.setProgress(0.0, animated: false)
+        upSpeedLabel.text = ""
+        downSpeedLabel.text = ""
+        speedEntries.removeAll();
         downloadTestFile();
         startTime = Date.timeIntervalSinceReferenceDate
         
@@ -52,7 +64,7 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
     func downloadTestFile() {
         
         
-        let url = URL(string: "http://speedtest.ftp.otenet.gr/files/test100k.db")!
+        let url = URL(string: "http://162.208.10.89:3000/down")!
         downloadTask = backgroundSession.downloadTask(with: url)
         downloadTask.resume()
     }
@@ -65,7 +77,6 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
                     didFinishDownloadingTo location: URL){
         
         downSpeedLabel.text = "\(String(format: "%.2f", calculateSpeed()))"+" Mb/s"
-        speedEntries.removeAll()
         fileLocation = location
         print(fileLocation)
         
@@ -102,7 +113,8 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
     
     
     func uploadTestFile() {
-        var r  = URLRequest(url: URL(string: "http://posttestserver.com/post.php?dir=markel33uploadtest")!)
+        speedEntries.removeAll();
+        var r  = URLRequest(url: URL(string: "http://162.208.10.89:3000/up")!)
         r.httpMethod = "POST"
         let boundary = "Boundary-\(UUID().uuidString)"
         r.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -137,6 +149,14 @@ class ViewController: UIViewController, URLSessionDownloadDelegate {
         uploadTask.resume()
     }
     
+    
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        finishedTransfers=finishedTransfers+1
+        if (finishedTransfers>1) {
+            upSpeedLabel.text = "\(String(format: "%.2f", calculateSpeed()))"+" Mb/s"
+        }
+    }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
         
